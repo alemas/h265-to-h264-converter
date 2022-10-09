@@ -68,7 +68,7 @@ def parse_args():
             exit_with_message(usage_message)
 
 def convert_to_h264(filename, file_directory):
-    output_filename = f"h264 {filename}"
+    output_filename = f"h264_{filename}"
     tune_parameter = f" -tune {tune}" if not tune is None else ""
     cmd = f"ffmpeg -i '{os.path.join(file_directory, filename)}' -map 0 -c:v libx264 -crf 18{tune_parameter} -vf format=yuv420p -c:a copy -c:s copy '{os.path.join(file_directory, output_filename)}'"
     cmd += ">/dev/null 2>&1"
