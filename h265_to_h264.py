@@ -4,6 +4,7 @@ import sys
 import os
 import concurrent.futures as cf
 import datetime
+import subprocess
 
 usage_message = f'''\nUSAGE: python3 {sys.argv[0]} -i <dir_path|file_path> [-f format] [-t tune]\n
 f: video file format (default is mp4)
@@ -69,11 +70,14 @@ def parse_args():
 
 def convert_to_h264(filename, file_directory):
     output_filename = f"h264_{filename}"
-    tune_parameter = f" -tune {tune}" if not tune is None else ""
-    cmd = f"ffmpeg -i '{os.path.join(file_directory, filename)}' -map 0 -c:v libx264 -crf 18{tune_parameter} -vf format=yuv420p -c:a copy -c:s copy '{os.path.join(file_directory, output_filename)}'"
-    cmd += ">/dev/null 2>&1"
-    result = os.system(cmd)
-    return f"{filename} converted" if result == 0 else f"Failed to convert {filename}"
+    input_path = os.path.join(file_directory, filename)
+    output_path = os.path.join(file_directory, output_filename)
+    cmd = ["ffmpeg", "-i", input_path, "-map", "0", "-c:v", "libx264", "-crf", "18", "-tune", "animation", "-vf", "format=yuv420p", "-c:a", "copy", "-c:s", "copy"]
+    if not tune is None:
+        cmd += ["-tune", tune]
+    cmd.append(output_path)
+    result = subprocess.call(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    return f"\033[92m{filename} converted\033[0m" if result == 0 else f"\033[91mFailed to convert {filename}\033[0m"
 
 futures = []
 
@@ -86,11 +90,12 @@ def submit_convert_process(executor, filename, file_dir):
 def print_process_result(future):
     result = future.result()
     print(result)
+    print(f"Elapsed time: {datetime.datetime.now() - begin_time}")
 
 
 parse_args()
 
-with cf.ThreadPoolExecutor() as executor:
+with cf.ThreadPoolExecutor(max_workers=1) as executor:
     if directory_path != "":
         filename_list = []
         for filename in os.listdir(directory_path):
@@ -110,4 +115,4 @@ with cf.ThreadPoolExecutor() as executor:
             exit_with_message(f"File is not of type {format}")
 
 cf.wait(futures)
-print(f"Elapsed time: {datetime.datetime.now() - begin_time}")
+print(f"\033[94mTOTAL Elapsed time: {datetime.datetime.now() - begin_time}\033[0m")
